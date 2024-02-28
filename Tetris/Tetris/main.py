@@ -1,10 +1,6 @@
-# this is the same game and code as main.py but there is a input box for prn number which code uses to store the leaderboard that uses json instead of csv
-
 import pygame
 from copy import deepcopy
 from random import choice, randrange
-
-# import pandas as pd
 from pygame import mixer
 import json
 
@@ -90,6 +86,61 @@ background_music = pygame.mixer.Sound("./assets/sounds/bg.wav")
 background_music.play(-1)
 
 
+def prn_menu():
+    prn = ""
+    prn_font = pygame.font.Font("freesansbold.ttf", 30)
+    prn_input = ""
+    prn_input_active = False
+    prn_input_rect = pygame.Rect(
+        SCREEN_RESOLUTION[0] // 2 - 150, SCREEN_RESOLUTION[1] // 2, 300, 60
+    )
+    prn_input_color = pygame.Color("lightskyblue3")
+    prn_input_text = prn_font.render(prn_input, True, (255, 255, 255))
+    prn_input_text_rect = prn_input_text.get_rect(center=prn_input_rect.center)
+
+    submit_button = pygame.Rect(
+        SCREEN_RESOLUTION[0] // 2 - 70, SCREEN_RESOLUTION[1] // 2 + 100, 150, 50
+    )
+    submit_color = pygame.Color("dodgerblue2")
+
+    while True:
+        screen.fill((0, 0, 0))
+        pygame.draw.rect(screen, prn_input_color, prn_input_rect)
+        pygame.draw.rect(screen, submit_color, submit_button)
+        screen.blit(prn_input_text, prn_input_text_rect)
+        submit_text = prn_font.render("Submit", True, (255, 255, 255))
+        screen.blit(submit_text, (submit_button.x + 20, submit_button.y + 10))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            prn_input_active = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if prn_input_rect.collidepoint(event.pos):
+                    prn_input_active = True
+                else:
+                    prn_input_active = False
+                if submit_button.collidepoint(event.pos):
+                    return prn_input
+            if event.type == pygame.KEYDOWN:
+                if prn_input_active:
+                    if event.key == pygame.K_RETURN:
+                        return prn_input
+                    elif event.key == pygame.K_BACKSPACE:
+                        prn_input = prn_input[:-1]
+                    elif event.key == pygame.K_ESCAPE:
+                        main_menu()
+                    else:
+                        prn_input += event.unicode
+                    prn_input_text = prn_font.render(prn_input, True, (255, 255, 255))
+                    prn_input_text_rect = prn_input_text.get_rect(
+                        center=prn_input_rect.center
+                    )
+
+
 # Leaderbaord Screen for game
 def main_menu():
     menu_font = pygame.font.Font("freesansbold.ttf", 50)
@@ -147,7 +198,7 @@ def main_menu():
                     selected_option = (selected_option + 1) % len(options)
                 elif event.key == pygame.K_RETURN:
                     if selected_option == 0:
-                        return  # Start the game
+                        return prn_menu()  # Start the game
                     elif selected_option == 1:
                         leaderboard()  # Show the leaderboard
                     elif selected_option == 2:
@@ -222,75 +273,30 @@ def get_record():
 # Function to set a new record in the leaderboard file
 def set_record(prn, score):
     try:
+        # check if the prn exists and if the score is less or higher than the previous score and update the score if higher else dont do anything
         with open("leaderboard.json", "r") as f:
             leaderboard = json.load(f)
+            for player in leaderboard:
+                if player["prn"] == prn:
+                    if player["score"] < score:
+                        player["score"] = score
+                        with open("leaderboard.json", "w") as f:
+                            json.dump(leaderboard, f)
+                    return
+            leaderboard.append({"prn": prn, "score": score})
+            with open("leaderboard.json", "w") as f:
+                json.dump(leaderboard, f)
     except FileNotFoundError:
         leaderboard = []
 
     if isinstance(leaderboard, dict):
         leaderboard = [leaderboard]
-
-    leaderboard.append({"prn": str(prn), "score": score})
-
     with open("leaderboard.json", "w") as f:
         json.dump(leaderboard, f)
 
 
 # Main game loop
-def prn_menu():
-    prn = ""
-    prn_font = pygame.font.Font("freesansbold.ttf", 30)
-    prn_input = ""
-    prn_input_active = False
-    prn_input_rect = pygame.Rect(
-        SCREEN_RESOLUTION[0] // 2 - 150, SCREEN_RESOLUTION[1] // 2, 300, 60
-    )
-    prn_input_color = pygame.Color("lightskyblue3")
-    prn_input_text = prn_font.render(prn_input, True, (255, 255, 255))
-    prn_input_text_rect = prn_input_text.get_rect(center=prn_input_rect.center)
-
-    submit_button = pygame.Rect(
-        SCREEN_RESOLUTION[0] // 2 - 70, SCREEN_RESOLUTION[1] // 2 + 100, 150, 50
-    )
-    submit_color = pygame.Color("dodgerblue2")
-
-    while True:
-        screen.fill((0, 0, 0))
-        pygame.draw.rect(screen, prn_input_color, prn_input_rect)
-        pygame.draw.rect(screen, submit_color, submit_button)
-        screen.blit(prn_input_text, prn_input_text_rect)
-        submit_text = prn_font.render("Submit", True, (255, 255, 255))
-        screen.blit(submit_text, (submit_button.x + 20, submit_button.y + 10))
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if prn_input_rect.collidepoint(event.pos):
-                    prn_input_active = True
-                else:
-                    prn_input_active = False
-                if submit_button.collidepoint(event.pos):
-                    return prn_input
-            if event.type == pygame.KEYDOWN:
-                if prn_input_active:
-                    if event.key == pygame.K_RETURN:
-                        prn_input_active = False
-                    elif event.key == pygame.K_BACKSPACE:
-                        prn_input = prn_input[:-1]
-                    else:
-                        prn_input += event.unicode
-                    prn_input_text = prn_font.render(prn_input, True, (255, 255, 255))
-                    prn_input_text_rect = prn_input_text.get_rect(
-                        center=prn_input_rect.center
-                    )
-
-
-main_menu()
-prn = prn_menu()
+prn = main_menu()
 while True:
     record = get_record()
     dx, rotate = 0, False
